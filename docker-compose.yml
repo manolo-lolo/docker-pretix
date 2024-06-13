@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  pretix:
+    image: 'pretix/standalone:stable'
+    container_name: pretix_app
+    restart: always
+    pids_limit: 200
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ${PRETIX_DATA_PATH}:/data:rw
+      - ${PRETIX_CONFIG_PATH}:/etc/pretix/pretix.cfg
+    networks:
+      - web
+      - stack_network
+    ports:
+      - "${PRETIX_HTTP_PORT}:80"
+    environment:
+      # timezone inside container
+      - TZ
+
+  db:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    restart: always
+#    security_opt:  # comes from mattermost docker-compose, untested, don't use this for now
+#      - no-new-privileges:true
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    ports:
+    - "5432:5432"
+    environment:
+      # timezone inside container
+      - TZ
+      # necessary Postgres options/variables
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    networks:
+      - stack_network
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - stack_network
+
+networks:
+  web:
+    external: true
+  stack_network:
+    external: false
